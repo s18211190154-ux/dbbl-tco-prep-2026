@@ -957,6 +957,81 @@ table.history tr:last-child td { border-bottom: 0; }
   .top-nav { display: none; }
 }
 
+/* ============================================================
+   FEEDBACK SHORTCUT
+   ============================================================ */
+
+.fb-shortcut {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 10px 0; padding: 10px 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 8px;
+}
+.fb-shortcut .sc-label {
+  flex: 0 0 auto; font-size: 11.5px; font-weight: 700;
+  color: var(--accent); text-transform: uppercase; letter-spacing: .05em;
+}
+.fb-shortcut .sc-text { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.feedback-box.ok .fb-shortcut {
+  background: color-mix(in srgb, var(--brand) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+}
+.feedback-box.ok .fb-shortcut .sc-label { color: var(--brand-ink); }
+
+/* ============================================================
+   SUBJECT FOCUS — Study by Subject
+   ============================================================ */
+
+.subject-focus { margin-bottom: 18px; }
+.focus-tabs {
+  display: flex; gap: 6px; margin: 10px 0 14px; flex-wrap: wrap;
+}
+.focus-tab {
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--muted); font: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .12s ease;
+}
+.focus-tab:hover { border-color: var(--brand); color: var(--brand-ink); }
+.focus-tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+.focus-panels { display: grid; gap: 14px; }
+.focus-panel { display: none; }
+.focus-panel.active { display: block; }
+.focus-desc { margin: 0 0 10px; font-size: 13.5px; color: var(--ink-2); }
+.focus-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.topic-list { margin-top: 8px; }
+.topic-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.topic-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink-2); font: inherit;
+  font-size: 12.5px; font-weight: 550; cursor: pointer;
+  transition: all .12s ease;
+}
+.topic-chip:hover { border-color: var(--brand); color: var(--brand-ink); }
+.topic-chip.weak { border-color: var(--danger); color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.topic-chip.strong { border-color: var(--brand); color: var(--brand-ink); background: var(--brand-soft); }
+.topic-chip .chip { font-size: 10.5px; padding: 1px 6px; }
+.topic-chip .acc { font-size: 11px; font-weight: 700; color: var(--muted); }
+.topic-chip.weak .acc { color: var(--danger); }
+.topic-chip.strong .acc { color: var(--brand-ink); }
+
+/* ============================================================
+   RESPONSIVE — Focus panel
+   ============================================================ */
+
+@media (max-width: 620px) {
+  .focus-btns { flex-direction: column; }
+  .focus-btns .btn { width: 100%; }
+  .topic-chips { flex-direction: column; }
+  .topic-chip { width: 100%; justify-content: space-between; }
+}
+
+/* ============================================================
+   RESPONSIVE APP SHELL (continued)
+   ============================================================ */
+
 @media (max-width: 1100px) {
   .layout { grid-template-columns: 1fr; }
   .sidebar { display: none; }

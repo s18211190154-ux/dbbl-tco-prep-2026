@@ -731,6 +731,33 @@
         "</div></div>";
     }).join("");
 
+    var topicsByBank = {};
+    D.banks.forEach(function (b) {
+      var set = new Set();
+      b.questions.forEach(function (q) { set.add(q.topic); });
+      topicsByBank[b.id] = Array.from(set).sort();
+    });
+
+    var mathFocus = [
+      { key: "math:core", label: "Core Arithmetic", topics: ["Percentage", "Profit & Loss", "Ratio", "Average", "Partnership", "Age"] },
+      { key: "math:adv", label: "Advanced Math", topics: ["Time & Work", "Pipes", "Speed", "Trains", "Boats", "Interest", "Mixture", "Sets", "Geometry", "Series"] },
+    ];
+    var englishFocus = [
+      { key: "eng:grammar", label: "Grammar Rules", topics: ["Grammar", "Preposition", "Article", "Tense", "Voice", "Narration", "Subject-Verb", "Conditional", "Parallelism", "Modifier"] },
+      { key: "eng:vocab", label: "Vocabulary & Usage", topics: ["Vocabulary", "Idiom", "Phrase", "Synonym", "Antonym", "Spelling", "Word Choice"] },
+      { key: "eng:comp", label: "Comprehension", topics: ["Comprehension", "Cloze", "Passage"] },
+    ];
+
+    function focusHtml(focus, bankId) {
+      return focus.map(function (f) {
+        var count = D.banks.filter(function (b) { return b.id === bankId; })[0].questions.filter(function (q) {
+          return f.topics.some(function (t) { return q.topic.toLowerCase().indexOf(t.toLowerCase()) !== -1; });
+        }).length;
+        return '<button class="btn btn-small btn-soft" data-focus="' + f.key + '" data-bank="' + bankId + '" data-topics="' + esc(JSON.stringify(f.topics)) + '">' +
+          f.label + ' <span class="chip">' + count + ' Q</span></button>';
+      }).join(" ");
+    }
+
     el.innerHTML =
       '<section class="page-hero">' +
         '<p class="eyebrow">Practice</p>' +
@@ -742,6 +769,36 @@
         '<a class="btn btn-small btn-ghost" href="practice.html?weak=1">Practise my mistakes</a>' +
       "</div>" +
       '<section class="subject-grid">' + cards + "</section>" +
+      '<section class="panel subject-focus">' +
+        '<div class="panel-head"><h2>Study by Subject — Focused Drills</h2></div>' +
+        '<p class="muted small">Pick a focus area. Questions are filtered by topic. Your weak topics are highlighted on the progress page.</p>' +
+        '<div class="focus-tabs" role="tablist">' +
+          '<button class="focus-tab active" role="tab" data-focus-tab="math">Mathematics</button>' +
+          '<button class="focus-tab" role="tab" data-focus-tab="english">English</button>' +
+          '<button class="focus-tab" role="tab" data-focus-tab="others">Other Subjects</button>' +
+        '</div>' +
+        '<div class="focus-panels">' +
+          '<div class="focus-panel active" data-focus-panel="math">' +
+            '<p class="focus-desc">Maths is the differentiator. Drill the exact topic you need.</p>' +
+            '<div class="focus-btns">' + focusHtml(mathFocus, "math") + '</div>' +
+            '<div class="topic-list" id="mathTopics"></div>' +
+          '</div>' +
+          '<div class="focus-panel" data-focus-panel="english">' +
+            '<p class="focus-desc">English rules carry the most marks per minute. Master the patterns.</p>' +
+            '<div class="focus-btns">' + focusHtml(englishFocus, "english") + '</div>' +
+            '<div class="topic-list" id="englishTopics"></div>' +
+          '</div>' +
+          '<div class="focus-panel" data-focus-panel="others">' +
+            '<p class="focus-desc">Quick drills for the remaining subjects.</p>' +
+            '<div class="focus-btns">' +
+              D.banks.filter(function (b) { return b.id !== "math" && b.id !== "english"; }).map(function (b) {
+                return '<button class="btn btn-small btn-soft" data-bank="' + b.id + '" data-n="10">' + b.name + ' (10)</button>' +
+                  '<button class="btn btn-small btn-ghost" data-bank="' + b.id + '" data-n="20">' + b.name + ' (20)</button>';
+              }).join(" ") +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      "</section>" +
       '<section class="panel">' +
         '<div class="panel-head"><h2>Mixed set</h2></div>' +
         '<p class="muted">Twenty questions drawn from every subject — the closest thing to the real paper’s variety.</p>' +
@@ -771,6 +828,69 @@
       }
       startQuiz(pool.slice(0, 20), mode(), "Mixed practice");
     });
+
+    el.querySelectorAll(".focus-tab").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var target = tab.getAttribute("data-focus-tab");
+        el.querySelectorAll(".focus-tab").forEach(function (t) { t.classList.remove("active"); });
+        el.querySelectorAll(".focus-panel").forEach(function (p) { p.classList.remove("active"); });
+        tab.classList.add("active");
+        var panel = el.querySelector('[data-focus-panel="' + target + '"]');
+        if (panel) panel.classList.add("active");
+        if (target === "math") renderTopicList("math", el.querySelector("#mathTopics"));
+        if (target === "english") renderTopicList("english", el.querySelector("#englishTopics"));
+      });
+    });
+
+    el.querySelectorAll("[data-focus]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var bankId = btn.getAttribute("data-bank");
+        var topics = JSON.parse(btn.getAttribute("data-topics") || "[]");
+        var bank = D.banks.filter(function (b) { return b.id === bankId; })[0];
+        var qs = bank.questions.filter(function (q) {
+          return topics.some(function (t) { return q.topic.toLowerCase().indexOf(t.toLowerCase()) !== -1; });
+        });
+        if (qs.length) startQuiz(qs, mode(), btn.textContent.trim().split(" ")[0] + " drill");
+      });
+    });
+
+    function renderTopicList(bankId, container) {
+      if (!container || container.innerHTML.trim()) return;
+      var topics = topicsByBank[bankId];
+      var stats = {};
+      S.attempts.forEach(function (a) {
+        Object.keys(a.answers || {}).forEach(function (id) {
+          if (id.indexOf(bankId + ":") !== 0) return;
+          var q = D.byId[id];
+          if (!q) return;
+          if (!stats[q.topic]) stats[q.topic] = { ok: 0, total: 0 };
+          stats[q.topic].total++;
+          if (q.ans === a.answers[id]) stats[q.topic].ok++;
+        });
+      });
+      var bank = D.banks.filter(function (b) { return b.id === bankId; })[0];
+      container.innerHTML = '<p class="muted small">All topics in ' + bankId + ' — click to practise (weak topics first)</p>' +
+        '<div class="topic-chips">' + topics.map(function (t) {
+          var st = stats[t] || { ok: 0, total: 0 };
+          var totalInBank = bank ? bank.questions.filter(function (q) { return q.topic === t; }).length : 0;
+          var acc = st.total ? Math.round(st.ok * 100 / st.total) : 0;
+          var cls = "topic-chip" + (st.total && acc < 60 ? " weak" : "") + (st.total && acc >= 80 ? " strong" : "");
+          return '<button class="' + cls + '" data-bank="' + bankId + '" data-topic="' + esc(t) + '">' +
+            esc(t) + ' <span class="chip">' + st.total + '/' + totalInBank + '</span>' +
+            (st.total ? ' <span class="acc">' + acc + '%</span>' : '') + '</button>';
+        }).join(" ") + '</div>';
+      container.querySelectorAll("[data-topic]").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          var bankId = btn.getAttribute("data-bank");
+          var topic = btn.getAttribute("data-topic");
+          var bank = D.banks.filter(function (b) { return b.id === bankId; })[0];
+          var qs = bank.questions.filter(function (q) { return q.topic === topic; });
+          if (qs.length) startQuiz(qs, mode(), topic);
+        });
+      });
+    }
+
+    if (el.querySelector("#mathTopics")) renderTopicList("math", el.querySelector("#mathTopics"));
   }
 
   function renderResume(el, session) {
@@ -866,11 +986,22 @@
     startClock(el, P.start, false);
   }
 
+  function extractShortcut(exp) {
+    if (!exp) return null;
+    var m = exp.match(/Shortcut[:\s]+([^.]+(?:\.[^.]+)?)/i);
+    if (m) return m[1].trim();
+    var m2 = exp.match(/(?:^|[\.\?\!])\s*(?:Rule|Trick|Tip|Key|Formula)[:\s]+([^.]+(?:\.[^.]+)?)/i);
+    if (m2) return m2[1].trim();
+    return null;
+  }
+
   function feedbackHtml(q, chosen) {
     var ok = chosen === q.ans;
+    var shortcut = extractShortcut(q.exp);
     return '<div class="feedback-box ' + (ok ? "ok" : "bad") + '">' +
       '<p class="fb-title">' + (ok ? "Correct" : "Not quite") + "</p>" +
       (ok ? "" : '<p class="fb-answer">Correct answer: <b>' + esc(q.ans) + ") " + esc(q.opts[q.ans]) + "</b></p>") +
+      (shortcut ? '<div class="fb-shortcut"><span class="sc-label">⚡ Shortcut</span><span class="sc-text">' + esc(shortcut) + "</span></div>" : "") +
       '<p class="fb-exp">' + esc(q.exp || "No explanation was written for this one — re-read the rule or formula in the reference notes.") + "</p>" +
       "</div>";
   }
